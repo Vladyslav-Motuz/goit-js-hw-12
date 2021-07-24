@@ -1,8 +1,12 @@
 // import './sass/main.scss';
-// import './css/styles.css';
+import './css/styles.css';
+
+import debounce from 'lodash.debounce';
+import { Notify } from 'notiflix';
+
 import countrysHBS from './templates/countrys.hbs';
 import countryHBS from './templates/country.hbs';
-// import { data } from 'browserslist';
+import API from './js/fetchCountries';
 
 const DEBOUNCE_DELAY = 300;
 
@@ -10,29 +14,38 @@ const input = document.querySelector('#search-box');
 const countryList = document.querySelector('.country-list');
 const countryInfo = document.querySelector('.country-info');
 
-console.log(input);
-console.log(countryList);
-console.log(countryInfo);
+const onSearchCountry = (event) => {
+    event.preventDefault();
+    const searchCountry = event.target.value;    
 
-// const queryAPI = (name) => fetch(`https://restcountries.eu/rest/v2/name/${name}?fields=name;capital;population;flag;languages`)
-//     .then(response => {
-//         return response.json();
-//     });
-// countryList.innerHTML = '<li><p>hi</p></li>'
-// const ssss = (name) => {
-//     queryAPI(name).then(data => {
-//         // console.log(data);
+    API.fetchCountries(searchCountry)
+        .then(countryName => {
+            
+            if (countryName.length === 0) {
+                clearSearchCountry();
+                return
+            } else if (countryName.length === 1) {
+                clearSearchCountry();
+                countryInfo.innerHTML = countryHBS(...countryName);
+            } else if (countryName.length >= 2 && countryName.length <= 10) {
+                clearSearchCountry();
+                countryName.forEach(country => {
+                    countryList.insertAdjacentHTML('beforeend', countrysHBS(country));
+                });
+            } else {
+                Notify.info('Too many matches found. Please enter a more specific name.');
+            };
+        })
+        
+        .catch(error => {
+            clearSearchCountry();
+            Notify.failure('Oops, there is no country with that name');           
+        });
+};
 
-//         data.forEach(element => {
-//             console.log(countrysHBS(element));
-//             countryList.insertAdjacentHTML('beforeend', countrysHBS(element));
-//         });
-       
-//     })
-//         .catch(error => {
-//             console.log(error);           
-//         });
-// };
+function clearSearchCountry() {
+    countryList.innerHTML = '';
+    countryInfo.innerHTML = '';
+}
 
-console.log(ssss("Col"));
-// input.addEventListener('input', onSearchCountry);
+input.addEventListener('input', debounce(onSearchCountry, DEBOUNCE_DELAY));
